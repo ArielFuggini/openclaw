@@ -1,51 +1,49 @@
-export type WizardSelectOption<T = string> = {
-  value: T;
-  label: string;
-  hint?: string;
-};
-
-export type WizardSelectParams<T = string> = {
-  message: string;
-  options: Array<WizardSelectOption<T>>;
-  initialValue?: T;
-};
-
-export type WizardMultiSelectParams<T = string> = {
-  message: string;
-  options: Array<WizardSelectOption<T>>;
-  initialValues?: T[];
-};
-
-export type WizardTextParams = {
-  message: string;
-  initialValue?: string;
-  placeholder?: string;
-  validate?: (value: string) => string | undefined;
-};
-
-export type WizardConfirmParams = {
-  message: string;
-  initialValue?: boolean;
-};
-
-export type WizardProgress = {
-  update: (message: string) => void;
-  stop: (message?: string) => void;
-};
+// Minimal stub - wizard prompter interface for CLI commands
+export type WizardSelectOption<T = unknown> = { value: T; label: string; hint?: string };
 
 export type WizardPrompter = {
-  intro: (title: string) => Promise<void>;
-  outro: (message: string) => Promise<void>;
-  note: (message: string, title?: string) => Promise<void>;
-  select: <T>(params: WizardSelectParams<T>) => Promise<T>;
-  multiselect: <T>(params: WizardMultiSelectParams<T>) => Promise<T[]>;
-  text: (params: WizardTextParams) => Promise<string>;
-  confirm: (params: WizardConfirmParams) => Promise<boolean>;
-  progress: (label: string) => WizardProgress;
+  text(params: {
+    message: string;
+    placeholder?: string;
+    defaultValue?: string;
+    initialValue?: string;
+    validate?: (value: string) => string | undefined;
+  }): Promise<string>;
+  confirm(params: {
+    message: string;
+    active?: string;
+    inactive?: string;
+    initialValue?: boolean;
+  }): Promise<boolean>;
+  select<T>(params: {
+    message: string;
+    options: Array<WizardSelectOption<T>>;
+    initialValue?: T;
+  }): Promise<T>;
+  multiselect<T>(params: {
+    message: string;
+    options: Array<WizardSelectOption<T>>;
+    required?: boolean;
+    initialValues?: T[];
+  }): Promise<T[]>;
+  note(message: string, title?: string): void;
+  intro(message?: string): void;
+  outro(message?: string): void;
+  spinner(): { start(msg?: string): void; stop(msg?: string): void; message(msg: string): void };
+  progress(msg: string): { stop(msg?: string): void; update(msg: string): void };
+  log: {
+    info(msg: string): void;
+    warn(msg: string): void;
+    error(msg: string): void;
+    step(msg: string): void;
+    success(msg: string): void;
+  };
+  isCancel(value: unknown): boolean;
+  cancel(msg?: string): void;
 };
 
 export class WizardCancelledError extends Error {
-  constructor(message = "wizard cancelled") {
+  constructor(message = "Wizard cancelled") {
     super(message);
     this.name = "WizardCancelledError";
   }

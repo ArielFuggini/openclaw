@@ -11,15 +11,19 @@ import { formatDocsLink } from "../../terminal/links.js";
 import { colorize, isRich, theme } from "../../terminal/theme.js";
 import { formatTokenCount, formatUsd } from "../../utils/usage-format.js";
 import { runCommandWithRuntime } from "../cli-utils.js";
-import {
-  runDaemonInstall,
-  runDaemonRestart,
-  runDaemonStart,
-  runDaemonStatus,
-  runDaemonStop,
-  runDaemonUninstall,
-} from "../daemon-cli.js";
 import { withProgress } from "../progress.js";
+
+// daemon-cli was removed; stub daemon management functions.
+const notAvailable = async (_opts?: unknown) => {
+  defaultRuntime.error("Daemon management commands are not available in this build.");
+  defaultRuntime.exit(1);
+};
+const runDaemonStatus = notAvailable;
+const runDaemonInstall = notAvailable;
+const runDaemonUninstall = notAvailable;
+const runDaemonStart = notAvailable;
+const runDaemonStop = notAvailable;
+const runDaemonRestart = notAvailable;
 import { callGatewayCli, gatewayCallOpts } from "./call.js";
 import {
   dedupeBeacons,

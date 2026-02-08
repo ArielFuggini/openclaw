@@ -2,12 +2,12 @@ import type { ChannelCapabilities, ChannelPlugin } from "../../channels/plugins/
 import type { OpenClawConfig } from "../../config/config.js";
 import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.js";
 import { getChannelPlugin, listChannelPlugins } from "../../channels/plugins/index.js";
-import { fetchChannelPermissionsDiscord } from "../../discord/send.js";
-import { parseDiscordTarget } from "../../discord/targets.js";
 import { danger } from "../../globals.js";
 import { defaultRuntime, type RuntimeEnv } from "../../runtime.js";
-import { fetchSlackScopes, type SlackScopesResult } from "../../slack/scopes.js";
 import { theme } from "../../terminal/theme.js";
+
+// Stub type for removed slack scopes module
+type SlackScopesResult = { ok: boolean; error?: string; scopes?: string[]; source?: string };
 import { formatChannelAccountLabel, requireValidConfig } from "./shared.js";
 
 export type ChannelsCapabilitiesOptions = {
@@ -121,26 +121,8 @@ function summarizeDiscordTarget(raw?: string): DiscordTargetSummary | undefined 
   if (!raw) {
     return undefined;
   }
-  const target = parseDiscordTarget(raw, { defaultKind: "channel" });
-  if (!target) {
-    return { raw };
-  }
-  if (target.kind === "channel") {
-    return {
-      raw,
-      normalized: target.normalized,
-      kind: "channel",
-      channelId: target.id,
-    };
-  }
-  if (target.kind === "user") {
-    return {
-      raw,
-      normalized: target.normalized,
-      kind: "user",
-    };
-  }
-  return { raw, normalized: target.normalized };
+  // Discord module was removed; return raw target only.
+  return { raw };
 }
 
 function formatDiscordIntents(intents?: {
@@ -278,61 +260,12 @@ function formatProbeLines(channelId: string, probe: unknown): string[] {
   return lines;
 }
 
-async function buildDiscordPermissions(params: {
+async function buildDiscordPermissions(_params: {
   account: { token?: string; accountId?: string };
   target?: string;
 }): Promise<{ target?: DiscordTargetSummary; report?: DiscordPermissionsReport }> {
-  const target = summarizeDiscordTarget(params.target?.trim());
-  if (!target) {
-    return {};
-  }
-  if (target.kind !== "channel" || !target.channelId) {
-    return {
-      target,
-      report: {
-        error: "Target looks like a DM user; pass channel:<id> to audit channel permissions.",
-      },
-    };
-  }
-  const token = params.account.token?.trim();
-  if (!token) {
-    return {
-      target,
-      report: {
-        channelId: target.channelId,
-        error: "Discord bot token missing for permission audit.",
-      },
-    };
-  }
-  try {
-    const perms = await fetchChannelPermissionsDiscord(target.channelId, {
-      token,
-      accountId: params.account.accountId ?? undefined,
-    });
-    const missing = REQUIRED_DISCORD_PERMISSIONS.filter(
-      (permission) => !perms.permissions.includes(permission),
-    );
-    return {
-      target,
-      report: {
-        channelId: perms.channelId,
-        guildId: perms.guildId,
-        isDm: perms.isDm,
-        channelType: perms.channelType,
-        permissions: perms.permissions,
-        missingRequired: missing.length ? missing : [],
-        raw: perms.raw,
-      },
-    };
-  } catch (err) {
-    return {
-      target,
-      report: {
-        channelId: target.channelId,
-        error: err instanceof Error ? err.message : String(err),
-      },
-    };
-  }
+  // Discord module was removed; permission audit is not available.
+  return { report: { error: "Discord permission audit is not available in this build." } };
 }
 
 async function resolveChannelReports(params: {
@@ -378,32 +311,8 @@ async function resolveChannelReports(params: {
       }
     }
 
-    let slackScopes: ChannelCapabilitiesReport["slackScopes"];
-    if (plugin.id === "slack" && configured && enabled) {
-      const botToken = (resolvedAccount as { botToken?: string }).botToken?.trim();
-      const userToken = (
-        resolvedAccount as { config?: { userToken?: string } }
-      ).config?.userToken?.trim();
-      const scopeReports: NonNullable<ChannelCapabilitiesReport["slackScopes"]> = [];
-      if (botToken) {
-        scopeReports.push({
-          tokenType: "bot",
-          result: await fetchSlackScopes(botToken, timeoutMs),
-        });
-      } else {
-        scopeReports.push({
-          tokenType: "bot",
-          result: { ok: false, error: "Slack bot token missing." },
-        });
-      }
-      if (userToken) {
-        scopeReports.push({
-          tokenType: "user",
-          result: await fetchSlackScopes(userToken, timeoutMs),
-        });
-      }
-      slackScopes = scopeReports;
-    }
+    // Slack scope check was removed with the slack module.
+    const slackScopes: ChannelCapabilitiesReport["slackScopes"] = undefined;
 
     let discordTarget: DiscordTargetSummary | undefined;
     let discordPermissions: DiscordPermissionsReport | undefined;

@@ -409,7 +409,7 @@ export async function dispatchReplyFromConfig(params: {
           // Send TTS-only payload (no text, just audio) so it doesn't duplicate the block content
           const ttsOnlyPayload: ReplyPayload = {
             mediaUrl: ttsSyntheticReply.mediaUrl,
-            audioAsVoice: ttsSyntheticReply.audioAsVoice,
+            audioAsVoice: ttsSyntheticReply.audioAsVoice as boolean | undefined,
           };
           if (shouldRouteToOriginating && originatingChannel && originatingTo) {
             const result = await routeReply({

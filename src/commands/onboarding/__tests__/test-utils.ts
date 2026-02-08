@@ -12,13 +12,17 @@ export const makeRuntime = (overrides: Partial<RuntimeEnv> = {}): RuntimeEnv => 
 });
 
 export const makePrompter = (overrides: Partial<WizardPrompter> = {}): WizardPrompter => ({
-  intro: vi.fn(async () => {}),
-  outro: vi.fn(async () => {}),
-  note: vi.fn(async () => {}),
+  intro: vi.fn(() => {}),
+  outro: vi.fn(() => {}),
+  note: vi.fn(() => {}),
   select: vi.fn(async () => "npm") as WizardPrompter["select"],
   multiselect: vi.fn(async () => []) as WizardPrompter["multiselect"],
   text: vi.fn(async () => "") as WizardPrompter["text"],
   confirm: vi.fn(async () => false),
   progress: vi.fn(() => ({ update: vi.fn(), stop: vi.fn() })),
+  spinner: vi.fn(() => ({ start: vi.fn(), stop: vi.fn(), message: vi.fn() })),
+  log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), step: vi.fn(), success: vi.fn() },
+  isCancel: vi.fn(() => false),
+  cancel: vi.fn(),
   ...overrides,
 });

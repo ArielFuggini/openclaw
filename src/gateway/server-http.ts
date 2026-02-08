@@ -12,7 +12,6 @@ import type { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveAgentAvatar } from "../agents/identity-avatar.js";
 import { handleA2uiHttpRequest } from "../canvas-host/a2ui.js";
 import { loadConfig } from "../config/config.js";
-import { handleSlackHttpRequest } from "../slack/http/index.js";
 import { handleControlUiAvatarRequest, handleControlUiHttpRequest } from "./control-ui.js";
 import { applyHookMappings } from "./hooks-mapping.js";
 import {
@@ -251,9 +250,6 @@ export function createGatewayHttpServer(opts: {
           trustedProxies,
         })
       ) {
-        return;
-      }
-      if (await handleSlackHttpRequest(req, res)) {
         return;
       }
       if (handlePluginRequest && (await handlePluginRequest(req, res))) {

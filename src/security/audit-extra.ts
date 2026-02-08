@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { SandboxToolPolicy } from "../agents/sandbox/types.js";
 import type { OpenClawConfig, ConfigFileSnapshot } from "../config/config.js";
+import type { NativeCommandsSetting } from "../config/types.messages.js";
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import type { ExecFn } from "./windows-acl.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
@@ -648,11 +649,17 @@ export async function collectPluginsTrustFindings(params: {
       hasString(process.env.SLACK_BOT_TOKEN) ||
       hasString(process.env.SLACK_APP_TOKEN);
 
+    const discordCfg = params.cfg.channels?.discord as Record<string, unknown> | undefined;
+    const slackCfg = params.cfg.channels?.slack as Record<string, unknown> | undefined;
+    const discordNativeSkills = (discordCfg?.commands as Record<string, unknown> | undefined)
+      ?.nativeSkills as NativeCommandsSetting | undefined;
+    const slackNativeSkills = (slackCfg?.commands as Record<string, unknown> | undefined)
+      ?.nativeSkills as NativeCommandsSetting | undefined;
     const skillCommandsLikelyExposed =
       (discordConfigured &&
         resolveNativeSkillsEnabled({
           providerId: "discord",
-          providerSetting: params.cfg.channels?.discord?.commands?.nativeSkills,
+          providerSetting: discordNativeSkills,
           globalSetting: params.cfg.commands?.nativeSkills,
         })) ||
       (telegramConfigured &&
@@ -664,7 +671,7 @@ export async function collectPluginsTrustFindings(params: {
       (slackConfigured &&
         resolveNativeSkillsEnabled({
           providerId: "slack",
-          providerSetting: params.cfg.channels?.slack?.commands?.nativeSkills,
+          providerSetting: slackNativeSkills,
           globalSetting: params.cfg.commands?.nativeSkills,
         }));
 

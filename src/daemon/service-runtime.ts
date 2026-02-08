@@ -1,8 +1,9 @@
+// Minimal stub
 export type GatewayServiceRuntime = {
-  status?: "running" | "stopped" | "unknown";
+  status?: string;
+  pid?: number;
   state?: string;
   subState?: string;
-  pid?: number;
   lastExitStatus?: number;
   lastExitReason?: string;
   lastRunResult?: string;
@@ -11,3 +12,7 @@ export type GatewayServiceRuntime = {
   cachedLabel?: boolean;
   missingUnit?: boolean;
 };
+
+export function getDaemonServiceRuntime(): null {
+  return null;
+}

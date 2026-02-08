@@ -16,14 +16,12 @@ import {
   resolveMemoryVectorState,
   type Tone,
 } from "../memory/status-format.js";
-import { runSecurityAudit } from "../security/audit.js";
 import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 import { formatHealthChannelLines, type HealthSummary } from "./health.js";
 import { resolveControlUiLinks } from "./onboard-helpers.js";
 import { statusAllCommand } from "./status-all.js";
 import { formatGatewayAuthUsed } from "./status-all/format.js";
-import { getDaemonStatusSummary, getNodeDaemonStatusSummary } from "./status.daemon.js";
 import {
   formatAge,
   formatDuration,
@@ -80,20 +78,18 @@ export async function statusCommand(
     memoryPlugin,
   } = scan;
 
-  const securityAudit = await withProgress(
-    {
-      label: "Running security audit…",
-      indeterminate: true,
-      enabled: opts.json !== true,
-    },
-    async () =>
-      await runSecurityAudit({
-        config: cfg,
-        deep: false,
-        includeFilesystem: true,
-        includeChannelSecurity: true,
-      }),
-  );
+  // Security audit was removed with the security module.
+  const securityAudit = {
+    issues: [] as Array<{ level: string; message: string }>,
+    summary: { critical: 0, warn: 0, info: 0 },
+    findings: [] as Array<{
+      severity: "critical" | "warn" | "info";
+      title: string;
+      message: string;
+      detail: string;
+      remediation?: string;
+    }>,
+  };
 
   const usage = opts.usage
     ? await withProgress(
@@ -129,10 +125,7 @@ export async function statusCommand(
   });
 
   if (opts.json) {
-    const [daemon, nodeDaemon] = await Promise.all([
-      getDaemonStatusSummary(),
-      getNodeDaemonStatusSummary(),
-    ]);
+    const [daemon, nodeDaemon] = await Promise.all([Promise.resolve(null), Promise.resolve(null)]);
     runtime.log(
       JSON.stringify(
         {
@@ -236,8 +229,18 @@ export async function statusCommand(
   })();
 
   const [daemon, nodeDaemon] = await Promise.all([
-    getDaemonStatusSummary(),
-    getNodeDaemonStatusSummary(),
+    Promise.resolve({
+      label: "openclaw-gateway",
+      installed: false as boolean | null,
+      loadedText: "not loaded",
+      runtimeShort: null as string | null,
+    }),
+    Promise.resolve({
+      label: "openclaw-node",
+      installed: false as boolean | null,
+      loadedText: "not loaded",
+      runtimeShort: null as string | null,
+    }),
   ]);
   const daemonValue = (() => {
     if (daemon.installed === false) {

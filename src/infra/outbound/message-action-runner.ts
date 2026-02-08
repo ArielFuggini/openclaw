@@ -18,7 +18,6 @@ import {
 import { parseReplyDirectives } from "../../auto-reply/reply/reply-directives.js";
 import { dispatchChannelMessageAction } from "../../channels/plugins/message-actions.js";
 import { extensionForMime } from "../../media/mime.js";
-import { parseSlackTarget } from "../../slack/targets.js";
 import {
   isDeliverableMessageChannel,
   normalizeMessageChannel,
@@ -217,29 +216,12 @@ function readBooleanParam(params: Record<string, unknown>, key: string): boolean
   return undefined;
 }
 
-function resolveSlackAutoThreadId(params: {
+function resolveSlackAutoThreadId(_params: {
   to: string;
   toolContext?: ChannelThreadingToolContext;
 }): string | undefined {
-  const context = params.toolContext;
-  if (!context?.currentThreadTs || !context.currentChannelId) {
-    return undefined;
-  }
-  // Only mirror auto-threading when Slack would reply in the active thread for this channel.
-  if (context.replyToMode !== "all" && context.replyToMode !== "first") {
-    return undefined;
-  }
-  const parsedTarget = parseSlackTarget(params.to, { defaultKind: "channel" });
-  if (!parsedTarget || parsedTarget.kind !== "channel") {
-    return undefined;
-  }
-  if (parsedTarget.id.toLowerCase() !== context.currentChannelId.toLowerCase()) {
-    return undefined;
-  }
-  if (context.replyToMode === "first" && context.hasRepliedRef?.value) {
-    return undefined;
-  }
-  return context.currentThreadTs;
+  // Slack module was removed; auto-threading is handled by extensions.
+  return undefined;
 }
 
 function resolveAttachmentMaxBytes(params: {

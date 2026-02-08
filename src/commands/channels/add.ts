@@ -7,7 +7,6 @@ import { writeConfigFile, type OpenClawConfig } from "../../config/config.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../../runtime.js";
 import { createClackPrompter } from "../../wizard/clack-prompter.js";
-import { setupChannels } from "../onboard-channels.js";
 import {
   ensureOnboardingPluginInstalled,
   reloadOnboardingPluginRegistry,
@@ -89,56 +88,10 @@ export async function channelsAddCommand(
 
   const useWizard = shouldUseWizard(params);
   if (useWizard) {
-    const prompter = createClackPrompter();
-    let selection: ChannelChoice[] = [];
-    const accountIds: Partial<Record<ChannelChoice, string>> = {};
-    await prompter.intro("Channel setup");
-    let nextConfig = await setupChannels(cfg, runtime, prompter, {
-      allowDisable: false,
-      allowSignalInstall: true,
-      promptAccountIds: true,
-      onSelection: (value) => {
-        selection = value;
-      },
-      onAccountId: (channel, accountId) => {
-        accountIds[channel] = accountId;
-      },
-    });
-    if (selection.length === 0) {
-      await prompter.outro("No channels selected.");
-      return;
-    }
-
-    const wantsNames = await prompter.confirm({
-      message: "Add display names for these accounts? (optional)",
-      initialValue: false,
-    });
-    if (wantsNames) {
-      for (const channel of selection) {
-        const accountId = accountIds[channel] ?? DEFAULT_ACCOUNT_ID;
-        const plugin = getChannelPlugin(channel);
-        const account = plugin?.config.resolveAccount(nextConfig, accountId) as
-          | { name?: string }
-          | undefined;
-        const snapshot = plugin?.config.describeAccount?.(account, nextConfig);
-        const existingName = snapshot?.name ?? account?.name;
-        const name = await prompter.text({
-          message: `${channel} account name (${accountId})`,
-          initialValue: existingName,
-        });
-        if (name?.trim()) {
-          nextConfig = applyAccountName({
-            cfg: nextConfig,
-            channel,
-            accountId,
-            name,
-          });
-        }
-      }
-    }
-
-    await writeConfigFile(nextConfig);
-    await prompter.outro("Channels updated.");
+    runtime.error(
+      "Interactive channel wizard is no longer available. Use --channel <name> instead.",
+    );
+    runtime.exit(1);
     return;
   }
 

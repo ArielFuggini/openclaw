@@ -1,8 +1,6 @@
 import type { Command } from "commander";
 import { dashboardCommand } from "../../commands/dashboard.js";
 import { doctorCommand } from "../../commands/doctor.js";
-import { resetCommand } from "../../commands/reset.js";
-import { uninstallCommand } from "../../commands/uninstall.js";
 import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
 import { theme } from "../../terminal/theme.js";
@@ -68,15 +66,9 @@ export function registerMaintenanceCommands(program: Command) {
     .option("--yes", "Skip confirmation prompts", false)
     .option("--non-interactive", "Disable prompts (requires --scope + --yes)", false)
     .option("--dry-run", "Print actions without removing files", false)
-    .action(async (opts) => {
-      await runCommandWithRuntime(defaultRuntime, async () => {
-        await resetCommand(defaultRuntime, {
-          scope: opts.scope,
-          yes: Boolean(opts.yes),
-          nonInteractive: Boolean(opts.nonInteractive),
-          dryRun: Boolean(opts.dryRun),
-        });
-      });
+    .action(async () => {
+      defaultRuntime.error("The reset command is not available in this build.");
+      defaultRuntime.exit(1);
     });
 
   program
@@ -95,18 +87,8 @@ export function registerMaintenanceCommands(program: Command) {
     .option("--yes", "Skip confirmation prompts", false)
     .option("--non-interactive", "Disable prompts (requires --yes)", false)
     .option("--dry-run", "Print actions without removing files", false)
-    .action(async (opts) => {
-      await runCommandWithRuntime(defaultRuntime, async () => {
-        await uninstallCommand(defaultRuntime, {
-          service: Boolean(opts.service),
-          state: Boolean(opts.state),
-          workspace: Boolean(opts.workspace),
-          app: Boolean(opts.app),
-          all: Boolean(opts.all),
-          yes: Boolean(opts.yes),
-          nonInteractive: Boolean(opts.nonInteractive),
-          dryRun: Boolean(opts.dryRun),
-        });
-      });
+    .action(async () => {
+      defaultRuntime.error("The uninstall command is not available in this build.");
+      defaultRuntime.exit(1);
     });
 }

@@ -1,15 +1,17 @@
-export const PROJECT_NAME = "openclaw" as const;
+// Minimal stub - legacy manifest/config name normalization
+const LEGACY_NAME_MAP: Record<string, string> = {};
 
-export const LEGACY_PROJECT_NAMES = [] as const;
+export function normalizeLegacyName(name: string): string {
+  return LEGACY_NAME_MAP[name] ?? name;
+}
 
-export const MANIFEST_KEY = PROJECT_NAME;
+export function isLegacyName(name: string): boolean {
+  return name in LEGACY_NAME_MAP;
+}
 
-export const LEGACY_MANIFEST_KEYS = LEGACY_PROJECT_NAMES;
+export function legacyNameEntries(): Array<[string, string]> {
+  return Object.entries(LEGACY_NAME_MAP);
+}
 
-export const LEGACY_PLUGIN_MANIFEST_FILENAMES = [] as const;
-
-export const LEGACY_CANVAS_HANDLER_NAMES = [] as const;
-
-export const MACOS_APP_SOURCES_DIR = "apps/macos/Sources/OpenClaw" as const;
-
-export const LEGACY_MACOS_APP_SOURCES_DIRS = [] as const;
+export const MANIFEST_KEY = "openclaw" as const;
+export const LEGACY_MANIFEST_KEYS: string[] = [];

@@ -26,7 +26,6 @@ import { createQuietRuntime, requireValidConfig } from "./agents.command-shared.
 import { applyAgentConfig, findAgentEntryIndex, listAgentEntries } from "./agents.config.js";
 import { promptAuthChoiceGrouped } from "./auth-choice-prompt.js";
 import { applyAuthChoice, warnIfModelConfigLooksOff } from "./auth-choice.js";
-import { setupChannels } from "./onboard-channels.js";
 import { ensureWorkspaceAndSessions } from "./onboard-helpers.js";
 
 type AgentsAddOptions = {
@@ -290,18 +289,9 @@ export async function agentsAddCommand(
       agentDir,
     });
 
-    let selection: ChannelChoice[] = [];
+    const selection: ChannelChoice[] = [];
     const channelAccountIds: Partial<Record<ChannelChoice, string>> = {};
-    nextConfig = await setupChannels(nextConfig, runtime, prompter, {
-      allowSignalInstall: true,
-      onSelection: (value) => {
-        selection = value;
-      },
-      promptAccountIds: true,
-      onAccountId: (channel, accountId) => {
-        channelAccountIds[channel] = accountId;
-      },
-    });
+    // Channel setup (onboard-channels) was removed; skip interactive channel setup.
 
     if (selection.length > 0) {
       const wantsBindings = await prompter.confirm({

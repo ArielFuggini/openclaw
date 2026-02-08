@@ -27,12 +27,7 @@ import {
   noteAuthProfileHealth,
 } from "./doctor-auth.js";
 import { loadAndMaybeMigrateDoctorConfig } from "./doctor-config-flow.js";
-import { maybeRepairGatewayDaemon } from "./doctor-gateway-daemon-flow.js";
 import { checkGatewayHealth } from "./doctor-gateway-health.js";
-import {
-  maybeRepairGatewayServiceConfig,
-  maybeScanExtraGatewayServices,
-} from "./doctor-gateway-services.js";
 import { noteSourceInstallIssues } from "./doctor-install.js";
 import {
   noteMacLaunchAgentOverrides,
@@ -41,7 +36,6 @@ import {
 } from "./doctor-platform-notes.js";
 import { createDoctorPrompter, type DoctorOptions } from "./doctor-prompter.js";
 import { maybeRepairSandboxImages, noteSandboxScopeWarnings } from "./doctor-sandbox.js";
-import { noteSecurityWarnings } from "./doctor-security.js";
 import { noteStateIntegrity, noteWorkspaceBackupTip } from "./doctor-state-integrity.js";
 import {
   detectLegacyStateMigrations,
@@ -52,7 +46,6 @@ import { maybeOfferUpdateBeforeDoctor } from "./doctor-update.js";
 import { noteWorkspaceStatus } from "./doctor-workspace-status.js";
 import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "./doctor-workspace.js";
 import { applyWizardMetadata, printWizardHeader, randomToken } from "./onboard-helpers.js";
-import { ensureSystemdUserLingerInteractive } from "./systemd-linger.js";
 
 const intro = (message: string) => clackIntro(stylePromptTitle(message) ?? message);
 const outro = (message: string) => clackOutro(stylePromptTitle(message) ?? message);
@@ -186,12 +179,8 @@ export async function doctorCommand(
   cfg = await maybeRepairSandboxImages(cfg, runtime, prompter);
   noteSandboxScopeWarnings(cfg);
 
-  await maybeScanExtraGatewayServices(options, runtime, prompter);
-  await maybeRepairGatewayServiceConfig(cfg, resolveMode(cfg), runtime, prompter);
   await noteMacLaunchAgentOverrides();
   await noteMacLaunchctlGatewayEnvOverrides(cfg);
-
-  await noteSecurityWarnings(cfg);
 
   if (cfg.hooks?.gmail?.model?.trim()) {
     const hooksModelRef = resolveHooksGmailModel({
@@ -231,32 +220,6 @@ export async function doctorCommand(
     }
   }
 
-  if (
-    options.nonInteractive !== true &&
-    process.platform === "linux" &&
-    resolveMode(cfg) === "local"
-  ) {
-    const service = resolveGatewayService();
-    let loaded = false;
-    try {
-      loaded = await service.isLoaded({ env: process.env });
-    } catch {
-      loaded = false;
-    }
-    if (loaded) {
-      await ensureSystemdUserLingerInteractive({
-        runtime,
-        prompter: {
-          confirm: async (p) => prompter.confirm(p),
-          note,
-        },
-        reason:
-          "Gateway runs as a systemd user service. Without lingering, systemd stops the user session on logout/idle and kills the Gateway.",
-        requireConfirm: true,
-      });
-    }
-  }
-
   noteWorkspaceStatus(cfg);
 
   const { healthOk } = await checkGatewayHealth({
@@ -264,15 +227,6 @@ export async function doctorCommand(
     cfg,
     timeoutMs: options.nonInteractive === true ? 3000 : 10_000,
   });
-  await maybeRepairGatewayDaemon({
-    cfg,
-    runtime,
-    prompter,
-    options,
-    gatewayDetailsMessage: gatewayDetails.message,
-    healthOk,
-  });
-
   const shouldWriteConfig = prompter.shouldRepair || configResult.shouldWriteConfig;
   if (shouldWriteConfig) {
     cfg = applyWizardMetadata(cfg, { command: "doctor", mode: resolveMode(cfg) });

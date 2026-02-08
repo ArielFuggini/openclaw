@@ -959,8 +959,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       defaultRuntime.log(theme.heading("Restarting service..."));
     }
     try {
-      const { runDaemonRestart } = await import("./daemon-cli.js");
-      const restarted = await runDaemonRestart();
+      const restarted = false; // daemon-cli was removed
       if (!opts.json && restarted) {
         defaultRuntime.log(theme.success("Daemon restarted successfully."));
         defaultRuntime.log("");

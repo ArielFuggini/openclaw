@@ -1,15 +1,16 @@
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardSection } from "./configure.shared.js";
 import { defaultRuntime } from "../runtime.js";
-import { runConfigureWizard } from "./configure.wizard.js";
 
 export async function configureCommand(runtime: RuntimeEnv = defaultRuntime) {
-  await runConfigureWizard({ command: "configure" }, runtime);
+  runtime.error("The configure wizard is not available in this build.");
+  runtime.exit(1);
 }
 
 export async function configureCommandWithSections(
-  sections: WizardSection[],
+  _sections: WizardSection[],
   runtime: RuntimeEnv = defaultRuntime,
 ) {
-  await runConfigureWizard({ command: "configure", sections }, runtime);
+  runtime.error("The configure wizard is not available in this build.");
+  runtime.exit(1);
 }
