@@ -1,5 +1,6 @@
 packages:
   - .
+  - extensions/memory-core
 
 onlyBuiltDependencies:
   - "@whiskeysockets/baileys"

@@ -30,7 +30,7 @@ Strip openclaw down to the essentials: **Telegram, WhatsApp, Skills, TUI, Browse
 | `apps/` | iOS, Android, macOS apps + shared Swift kit (82k lines) |
 | `assets/` | Chrome extension, images |
 | `docs/` | 302 Mintlify documentation files (55k lines) |
-| `extensions/` | All 32 channel/feature plugins (73k lines) |
+| `extensions/` | All 32 channel/feature plugins (73k lines) — **except `memory-core` which was restored** |
 | `packages/` | Monorepo sub-packages (clawdbot, moltbot) |
 | `ui/` | Web UI (React/Lit.js) |
 | `.pi/` | Pi agent configuration |
@@ -257,7 +257,7 @@ These existing files were surgically edited to remove references to deleted chan
 | Setting | Before | After |
 |---------|--------|-------|
 | Build command | `pnpm canvas:a2ui:bundle && tsc ... && copy-a2ui ...` | `tsc ... && OPENCLAW_A2UI_SKIP_MISSING=1 copy-a2ui ...` |
-| Workspace packages | `.`, `ui`, `packages/*`, `extensions/*` | `.` only |
+| Workspace packages | `.`, `ui`, `packages/*`, `extensions/*` | `.`, `extensions/memory-core` |
 | `onlyBuiltDependencies` | 8 entries (including matrix, carbon, pam) | 4 entries (baileys, esbuild, protobufjs, sharp) |
 
 ---
@@ -282,7 +282,7 @@ These existing files were surgically edited to remove references to deleted chan
 - **Skills** (`skills/`) — 48 bundled skills with SKILL.md frontmatter
 - **TUI** (`src/tui/`) — terminal UI
 - **Browser** (`src/browser/`) — Playwright web automation
-- **Memory** (`src/memory/`) — session memory, vector search
+- **Memory** (`src/memory/`, `extensions/memory-core/`) — session memory, vector search, memory_search/memory_get agent tools via plugin
 - **Media understanding** (`src/media-understanding/`) — image/video/audio AI analysis
 - **Media pipeline** (`src/media/`) — fetch, store, convert, MIME detection
 - **Sessions** (`src/sessions/`) — conversation session management
