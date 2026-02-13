@@ -1,0 +1,17 @@
+{
+  "name": "@openclaw/global-rules",
+  "version": "2026.2.13",
+  "description": "Two-layer global rules for agent system prompts",
+  "type": "module",
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.1.26"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

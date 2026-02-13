@@ -6,6 +6,7 @@ import { resolveHeartbeatPrompt } from "../auto-reply/heartbeat.js";
 import { shouldLogVerbose } from "../globals.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
+import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { resolveUserPath } from "../utils.js";
 import { resolveSessionAgentIds } from "./agent-scope.js";
@@ -28,7 +29,6 @@ import {
 } from "./cli-runner/helpers.js";
 import { resolveOpenClawDocsPath } from "./docs-path.js";
 import { FailoverError, resolveFailoverStatus } from "./failover-error.js";
-import { loadGlobalRules, loadStrictRules } from "./global-rules.js";
 import { classifyFailoverReason, isFailoverErrorMessage } from "./pi-embedded-helpers.js";
 
 const log = createSubsystemLogger("agent/claude-cli");
@@ -72,17 +72,13 @@ export async function runCliAgent(params: {
     .join("\n");
 
   const sessionLabel = params.sessionKey ?? params.sessionId;
-  const [{ contextFiles }, strictRulesContent, globalRulesContent] = await Promise.all([
-    resolveBootstrapContextForRun({
-      workspaceDir,
-      config: params.config,
-      sessionKey: params.sessionKey,
-      sessionId: params.sessionId,
-      warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
-    }),
-    loadStrictRules(),
-    loadGlobalRules(),
-  ]);
+  const { contextFiles } = await resolveBootstrapContextForRun({
+    workspaceDir,
+    config: params.config,
+    sessionKey: params.sessionKey,
+    sessionId: params.sessionId,
+    warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
+  });
   const { defaultAgentId, sessionAgentId } = resolveSessionAgentIds({
     sessionKey: params.sessionKey,
     config: params.config,
@@ -97,6 +93,32 @@ export async function runCliAgent(params: {
     cwd: process.cwd(),
     moduleUrl: import.meta.url,
   });
+
+  // Resolve plugin-injected system prompt sections.
+  const hookRunner = getGlobalHookRunner();
+  let systemPromptSections: Array<{ heading: string; content: string }> | undefined;
+  if (hookRunner?.hasHooks("resolve_system_prompt_sections")) {
+    try {
+      const sectionsResult = await hookRunner.runResolveSystemPromptSections(
+        {
+          agentId: sessionAgentId,
+          sessionKey: params.sessionKey,
+          workspaceDir,
+        },
+        {
+          agentId: sessionAgentId,
+          sessionKey: params.sessionKey,
+          workspaceDir,
+        },
+      );
+      if (sectionsResult?.sections?.length) {
+        systemPromptSections = sectionsResult.sections;
+      }
+    } catch {
+      // Hook errors are non-fatal.
+    }
+  }
+
   const systemPrompt = buildSystemPrompt({
     workspaceDir,
     config: params.config,
@@ -109,8 +131,7 @@ export async function runCliAgent(params: {
     contextFiles,
     modelDisplay,
     agentId: sessionAgentId,
-    strictRulesContent,
-    globalRulesContent,
+    systemPromptSections,
   });
 
   const { sessionId: cliSessionIdToSend, isNew } = resolveSessionIdToSend({

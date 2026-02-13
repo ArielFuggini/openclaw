@@ -14,6 +14,7 @@ import type { EmbeddedPiCompactResult } from "./types.js";
 import { resolveHeartbeatPrompt } from "../../auto-reply/heartbeat.js";
 import { resolveChannelCapabilities } from "../../config/channel-capabilities.js";
 import { getMachineDisplayName } from "../../infra/machine-name.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { type enqueueCommand, enqueueCommandInLane } from "../../process/command-queue.js";
 import { isSubagentSessionKey } from "../../routing/session-key.js";
 import { resolveSignalReactionLevel } from "../../signal/reaction-level.js";
@@ -30,7 +31,6 @@ import { listChannelSupportedActions, resolveChannelMessageToolHints } from "../
 import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import { resolveOpenClawDocsPath } from "../docs-path.js";
-import { loadGlobalRules, loadStrictRules } from "../global-rules.js";
 import { getApiKeyForModel, resolveModelAuthMode } from "../model-auth.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
 import {
@@ -203,17 +203,13 @@ export async function compactEmbeddedPiSessionDirect(
     });
 
     const sessionLabel = params.sessionKey ?? params.sessionId;
-    const [{ contextFiles }, strictRulesContent, globalRulesContent] = await Promise.all([
-      resolveBootstrapContextForRun({
-        workspaceDir: effectiveWorkspace,
-        config: params.config,
-        sessionKey: params.sessionKey,
-        sessionId: params.sessionId,
-        warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
-      }),
-      loadStrictRules(),
-      loadGlobalRules(),
-    ]);
+    const { contextFiles } = await resolveBootstrapContextForRun({
+      workspaceDir: effectiveWorkspace,
+      config: params.config,
+      sessionKey: params.sessionKey,
+      sessionId: params.sessionId,
+      warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
+    });
     const runAbortController = new AbortController();
     const toolsRaw = createOpenClawCodingTools({
       exec: {
@@ -328,6 +324,33 @@ export async function compactEmbeddedPiSessionDirect(
       moduleUrl: import.meta.url,
     });
     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
+
+    // Resolve plugin-injected system prompt sections before building the prompt.
+    const hookRunner = getGlobalHookRunner();
+    let systemPromptSections: Array<{ heading: string; content: string }> | undefined;
+    if (hookRunner?.hasHooks("resolve_system_prompt_sections")) {
+      try {
+        const sectionsResult = await hookRunner.runResolveSystemPromptSections(
+          {
+            agentId: sessionAgentId,
+            sessionKey: params.sessionKey,
+            workspaceDir: effectiveWorkspace,
+          },
+          {
+            agentId: sessionAgentId,
+            sessionKey: params.sessionKey,
+            workspaceDir: effectiveWorkspace,
+            messageProvider: params.messageProvider ?? undefined,
+          },
+        );
+        if (sectionsResult?.sections?.length) {
+          systemPromptSections = sectionsResult.sections;
+        }
+      } catch {
+        // Hook errors are non-fatal.
+      }
+    }
+
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
@@ -352,8 +375,7 @@ export async function compactEmbeddedPiSessionDirect(
       userTime,
       userTimeFormat,
       contextFiles,
-      strictRulesContent,
-      globalRulesContent,
+      systemPromptSections,
     });
     const systemPrompt = createSystemPromptOverride(appendPrompt);
 

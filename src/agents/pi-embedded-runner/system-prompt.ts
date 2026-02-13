@@ -45,10 +45,8 @@ export function buildEmbeddedSystemPrompt(params: {
   userTime?: string;
   userTimeFormat?: ResolvedTimeFormat;
   contextFiles?: EmbeddedContextFile[];
-  /** Strict rules content loaded from package templates (STRICT_RULES.md). */
-  strictRulesContent?: string;
-  /** Operator rules content loaded from ~/.openclaw/RULES.md. */
-  globalRulesContent?: string;
+  /** Extra sections injected by plugins, placed after Safety and before CLI Quick Reference. */
+  systemPromptSections?: Array<{ heading: string; content: string }>;
 }): string {
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,
@@ -74,8 +72,7 @@ export function buildEmbeddedSystemPrompt(params: {
     userTime: params.userTime,
     userTimeFormat: params.userTimeFormat,
     contextFiles: params.contextFiles,
-    strictRulesContent: params.strictRulesContent,
-    globalRulesContent: params.globalRulesContent,
+    systemPromptSections: params.systemPromptSections,
   });
 }
 

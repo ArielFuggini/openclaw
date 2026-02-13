@@ -208,8 +208,7 @@ export function buildSystemPrompt(params: {
   contextFiles?: EmbeddedContextFile[];
   modelDisplay: string;
   agentId?: string;
-  strictRulesContent?: string;
-  globalRulesContent?: string;
+  systemPromptSections?: Array<{ heading: string; content: string }>;
 }) {
   const defaultModelRef = resolveDefaultModelForAgent({
     cfg: params.config ?? {},
@@ -247,8 +246,7 @@ export function buildSystemPrompt(params: {
     userTimeFormat,
     contextFiles: params.contextFiles,
     ttsHint,
-    strictRulesContent: params.strictRulesContent,
-    globalRulesContent: params.globalRulesContent,
+    systemPromptSections: params.systemPromptSections,
   });
 }
 

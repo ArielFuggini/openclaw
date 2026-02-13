@@ -213,10 +213,8 @@ export function buildAgentSystemPrompt(params: {
     level: "minimal" | "extensive";
     channel: string;
   };
-  /** Strict rules content loaded from package templates (STRICT_RULES.md). */
-  strictRulesContent?: string;
-  /** Operator rules content loaded from ~/.openclaw/RULES.md. */
-  globalRulesContent?: string;
+  /** Extra sections injected by plugins, placed after Safety and before CLI Quick Reference. */
+  systemPromptSections?: Array<{ heading: string; content: string }>;
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -402,8 +400,11 @@ export function buildAgentSystemPrompt(params: {
     "Use plain human language for narration unless in a technical context.",
     "",
     ...buildSafetySection(),
-    ...(params.strictRulesContent ? ["## Strict Rules", params.strictRulesContent, ""] : []),
-    ...(params.globalRulesContent ? ["## Operator Rules", params.globalRulesContent, ""] : []),
+    ...(params.systemPromptSections ?? []).flatMap((section) => [
+      `## ${section.heading}`,
+      section.content,
+      "",
+    ]),
     "## OpenClaw CLI Quick Reference",
     "OpenClaw is controlled via subcommands. Do not invent commands.",
     "To manage the Gateway daemon service (start/stop/restart):",

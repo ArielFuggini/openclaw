@@ -294,6 +294,12 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  extensions/global-rules:
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
   extensions/google-antigravity-auth:
     devDependencies:
       openclaw:
