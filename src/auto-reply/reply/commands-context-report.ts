@@ -3,7 +3,6 @@ import type { ReplyPayload } from "../types.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 import { resolveSessionAgentIds } from "../../agents/agent-scope.js";
 import { resolveBootstrapContextForRun } from "../../agents/bootstrap-files.js";
-import { loadGlobalRules, loadStrictRules } from "../../agents/global-rules.js";
 import { resolveDefaultModelForAgent } from "../../agents/model-selection.js";
 import { resolveBootstrapMaxChars } from "../../agents/pi-embedded-helpers.js";
 import { createOpenClawCodingTools } from "../../agents/pi-tools.js";
@@ -15,6 +14,7 @@ import { buildSystemPromptReport } from "../../agents/system-prompt-report.js";
 import { buildAgentSystemPrompt } from "../../agents/system-prompt.js";
 import { buildToolSummaryMap } from "../../agents/tool-summaries.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 
 function estimateTokensFromChars(chars: number): number {
@@ -60,17 +60,12 @@ async function resolveContextReport(
 
   const workspaceDir = params.workspaceDir;
   const bootstrapMaxChars = resolveBootstrapMaxChars(params.cfg);
-  const [{ bootstrapFiles, contextFiles: injectedFiles }, strictRulesContent, globalRulesContent] =
-    await Promise.all([
-      resolveBootstrapContextForRun({
-        workspaceDir,
-        config: params.cfg,
-        sessionKey: params.sessionKey,
-        sessionId: params.sessionEntry?.sessionId,
-      }),
-      loadStrictRules(),
-      loadGlobalRules(),
-    ]);
+  const { bootstrapFiles, contextFiles: injectedFiles } = await resolveBootstrapContextForRun({
+    workspaceDir,
+    config: params.cfg,
+    sessionKey: params.sessionKey,
+    sessionId: params.sessionEntry?.sessionId,
+  });
   const skillsSnapshot = (() => {
     try {
       return buildWorkspaceSkillSnapshot(workspaceDir, {
@@ -143,6 +138,31 @@ async function resolveContextReport(
     : { enabled: false };
   const ttsHint = params.cfg ? buildTtsSystemPromptHint(params.cfg) : undefined;
 
+  // Resolve plugin-injected system prompt sections.
+  const hookRunner = getGlobalHookRunner();
+  let systemPromptSections: Array<{ heading: string; content: string }> | undefined;
+  if (hookRunner?.hasHooks("resolve_system_prompt_sections")) {
+    try {
+      const sectionsResult = await hookRunner.runResolveSystemPromptSections(
+        {
+          agentId: sessionAgentId,
+          sessionKey: params.sessionKey,
+          workspaceDir,
+        },
+        {
+          agentId: sessionAgentId,
+          sessionKey: params.sessionKey,
+          workspaceDir,
+        },
+      );
+      if (sectionsResult?.sections?.length) {
+        systemPromptSections = sectionsResult.sections;
+      }
+    } catch {
+      // Hook errors are non-fatal.
+    }
+  }
+
   const systemPrompt = buildAgentSystemPrompt({
     workspaceDir,
     defaultThinkLevel: params.resolvedThinkLevel,
@@ -162,8 +182,7 @@ async function resolveContextReport(
     ttsHint,
     runtimeInfo,
     sandboxInfo,
-    strictRulesContent,
-    globalRulesContent,
+    systemPromptSections,
   });
 
   return buildSystemPromptReport({

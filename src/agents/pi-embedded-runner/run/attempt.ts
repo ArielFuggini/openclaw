@@ -34,7 +34,6 @@ import {
 } from "../../channel-tools.js";
 import { resolveOpenClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
-import { loadGlobalRules, loadStrictRules } from "../../global-rules.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import { resolveDefaultModelForAgent } from "../../model-selection.js";
 import {
@@ -188,21 +187,14 @@ export async function runEmbeddedAttempt(
     });
 
     const sessionLabel = params.sessionKey ?? params.sessionId;
-    const [
-      { bootstrapFiles: hookAdjustedBootstrapFiles, contextFiles },
-      strictRulesContent,
-      globalRulesContent,
-    ] = await Promise.all([
-      resolveBootstrapContextForRun({
+    const { bootstrapFiles: hookAdjustedBootstrapFiles, contextFiles } =
+      await resolveBootstrapContextForRun({
         workspaceDir: effectiveWorkspace,
         config: params.config,
         sessionKey: params.sessionKey,
         sessionId: params.sessionId,
         warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
-      }),
-      loadStrictRules(),
-      loadGlobalRules(),
-    ]);
+      });
     const workspaceNotes = hookAdjustedBootstrapFiles.some(
       (file) => file.name === DEFAULT_BOOTSTRAP_FILENAME && !file.missing,
     )
@@ -350,6 +342,32 @@ export async function runEmbeddedAttempt(
     });
     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
 
+    // Resolve plugin-injected system prompt sections before building the prompt.
+    const sectionHookRunner = getGlobalHookRunner();
+    let systemPromptSections: Array<{ heading: string; content: string }> | undefined;
+    if (sectionHookRunner?.hasHooks("resolve_system_prompt_sections")) {
+      try {
+        const sectionsResult = await sectionHookRunner.runResolveSystemPromptSections(
+          {
+            agentId: sessionAgentId,
+            sessionKey: params.sessionKey,
+            workspaceDir: effectiveWorkspace,
+          },
+          {
+            agentId: sessionAgentId,
+            sessionKey: params.sessionKey,
+            workspaceDir: effectiveWorkspace,
+            messageProvider: params.messageProvider ?? undefined,
+          },
+        );
+        if (sectionsResult?.sections?.length) {
+          systemPromptSections = sectionsResult.sections;
+        }
+      } catch {
+        // Hook errors are non-fatal; sections will be omitted.
+      }
+    }
+
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
@@ -375,8 +393,7 @@ export async function runEmbeddedAttempt(
       userTime,
       userTimeFormat,
       contextFiles,
-      strictRulesContent,
-      globalRulesContent,
+      systemPromptSections,
     });
     const systemPromptReport = buildSystemPromptReport({
       source: "run",

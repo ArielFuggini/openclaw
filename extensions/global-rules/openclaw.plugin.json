@@ -1,0 +1,19 @@
+{
+  "id": "global-rules",
+  "name": "Global Rules",
+  "description": "Two-layer global rules system (Strict Rules + Operator Rules) injected into the agent system prompt",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "strictRulesPath": {
+        "type": "string",
+        "description": "Path to strict rules file (defaults to bundled template)"
+      },
+      "operatorRulesPath": {
+        "type": "string",
+        "description": "Path to operator rules file (defaults to ~/.openclaw/RULES.md)"
+      }
+    }
+  }
+}

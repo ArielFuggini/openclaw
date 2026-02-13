@@ -26,6 +26,8 @@ import type {
   PluginHookMessageSentEvent,
   PluginHookName,
   PluginHookRegistration,
+  PluginHookResolveSystemPromptSectionsEvent,
+  PluginHookResolveSystemPromptSectionsResult,
   PluginHookSessionContext,
   PluginHookSessionEndEvent,
   PluginHookSessionStartEvent,
@@ -38,6 +40,8 @@ import type {
 // Re-export types for consumers
 export type {
   PluginHookAgentContext,
+  PluginHookResolveSystemPromptSectionsEvent,
+  PluginHookResolveSystemPromptSectionsResult,
   PluginHookBeforeAgentStartEvent,
   PluginHookBeforeAgentStartResult,
   PluginHookAgentEndEvent,
@@ -174,6 +178,23 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
   // =========================================================================
   // Agent Hooks
   // =========================================================================
+
+  /**
+   * Run resolve_system_prompt_sections hook.
+   * Allows plugins to inject sections into the agent system prompt.
+   * Runs sequentially, concatenating sections from all handlers (ordered by priority).
+   */
+  async function runResolveSystemPromptSections(
+    event: PluginHookResolveSystemPromptSectionsEvent,
+    ctx: PluginHookAgentContext,
+  ): Promise<PluginHookResolveSystemPromptSectionsResult | undefined> {
+    return runModifyingHook<
+      "resolve_system_prompt_sections",
+      PluginHookResolveSystemPromptSectionsResult
+    >("resolve_system_prompt_sections", event, ctx, (acc, next) => ({
+      sections: [...(acc?.sections ?? []), ...(next.sections ?? [])],
+    }));
+  }
 
   /**
    * Run before_agent_start hook.
@@ -440,6 +461,8 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
   }
 
   return {
+    // System prompt hooks
+    runResolveSystemPromptSections,
     // Agent hooks
     runBeforeAgentStart,
     runAgentEnd,

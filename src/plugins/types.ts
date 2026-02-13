@@ -285,6 +285,7 @@ export type PluginDiagnostic = {
 // ============================================================================
 
 export type PluginHookName =
+  | "resolve_system_prompt_sections"
   | "before_agent_start"
   | "agent_end"
   | "before_compaction"
@@ -306,6 +307,17 @@ export type PluginHookAgentContext = {
   sessionKey?: string;
   workspaceDir?: string;
   messageProvider?: string;
+};
+
+// resolve_system_prompt_sections hook
+export type PluginHookResolveSystemPromptSectionsEvent = {
+  agentId?: string;
+  sessionKey?: string;
+  workspaceDir?: string;
+};
+
+export type PluginHookResolveSystemPromptSectionsResult = {
+  sections: Array<{ heading: string; content: string }>;
 };
 
 // before_agent_start hook
@@ -462,6 +474,13 @@ export type PluginHookGatewayStopEvent = {
 
 // Hook handler types mapped by hook name
 export type PluginHookHandlerMap = {
+  resolve_system_prompt_sections: (
+    event: PluginHookResolveSystemPromptSectionsEvent,
+    ctx: PluginHookAgentContext,
+  ) =>
+    | Promise<PluginHookResolveSystemPromptSectionsResult | void>
+    | PluginHookResolveSystemPromptSectionsResult
+    | void;
   before_agent_start: (
     event: PluginHookBeforeAgentStartEvent,
     ctx: PluginHookAgentContext,
